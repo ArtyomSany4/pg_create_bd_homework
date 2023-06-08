@@ -20,13 +20,11 @@ FROM artist_list al
 WHERE (LENGTH(artist_name) - LENGTH(REPLACE(artist_name, ' ', ''))) = 0
 
 -- 5. Название треков, которые содержат слово «мой» или «my».
--- прошу прощения, было лень добавлять трек с "мой" или "my", добавил поиск на '%In%'
 SELECT track_name
 FROM track_list tl 
-WHERE track_name LIKE '%my%' 
-	OR track_name LIKE '%мой%' 
-	OR track_name LIKE '%In%'
-	
+WHERE track_name ~* '\ymy\y'
+	OR track_name ~* '\yмой\y';
+
 	
 -- Задание 3
 -- 1. Количество исполнителей в каждом жанре.
@@ -50,39 +48,22 @@ FROM album_list al
 	ON tl.album_id = al.album_id 
 GROUP BY al.album_name
 
-
-
 -- 4. Все исполнители, которые не выпустили альбомы в 2020 году.
--- 4.1. Обратный отсчет попадает в выборку, т.к. у него 2 альбома: 2020 и 2021
 SELECT art_l.artist_name
 FROM artist_list art_l
 	JOIN artist_album_agent aaa 
 	ON art_l.artist_id = aaa.artist_id
 	JOIN album_list al_l 
 	ON al_l.album_id = aaa.album_id
-WHERE EXTRACT (YEAR FROM al_l.release_date) != 2020
-
--- 4.2. Собираем ИД артистов с альбомом в 20-м в костыльную таблицу crutch
-CREATE TABLE crutch AS
+WHERE art_l.artist_name != (
 	SELECT art_l.artist_name
 	FROM artist_list art_l
 		JOIN artist_album_agent aaa 
 		ON art_l.artist_id = aaa.artist_id
 		JOIN album_list al_l 
 		ON al_l.album_id = aaa.album_id
-	WHERE EXTRACT (YEAR FROM al_l.release_date) = 2020;
--- выбираем артистов != артист из костыля
-SELECT art_l.artist_name 
-FROM crutch cr
-	RIGHT JOIN artist_list art_l
-	ON cr.artist_name = art_l.artist_name
-	WHERE cr.artist_name IS NULL;
--- Чистим и дропаем костыльную таблицу за ненадобностью
-TRUNCATE TABLE crutch;
-DROP TABLE crutch;
-
-
-
+		WHERE EXTRACT (YEAR FROM al_l.release_date) = 2020);
+	
 -- 5. Названия сборников, в которых присутствует конкретный исполнитель (выберите его сами)
 SELECT DISTINCT c.comp_name
 FROM compilation c 
